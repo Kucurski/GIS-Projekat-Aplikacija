@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>GIS Projekat Sombor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/ol@v9.1.0/ol.css">
+    <script src="https://cdn.jsdelivr.net/npm/ol@v9.1.0/dist/ol.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        #mapa { position: absolute; top: 0; bottom: 0; left: 0; right: 0; }
+        #panel { position: absolute; top: 10px; right: 10px; background: rgba(255, 255, 255, 0.9); padding: 15px; border-radius: 5px; border: 1px solid #ccc; z-index: 1000; }
+    </style>
+</head>
+<body>
+
+<div id="mapa"></div>
+
+<div id="panel">
+    <h3>Upravljanje Slojevima</h3>
+    <div>
+        <input type="checkbox" id="satelitCheckbox" onchange="toggleLayer(satelitLayer, this.checked)">
+        <label for="satelitCheckbox">Satelitski snimak</label>
+    </div>
+    <div>
+        <input type="checkbox" id="opstinaCheckbox" onchange="toggleLayer(opstinaLayer, this.checked)" checked>
+        <label for="opstinaCheckbox">Opština Sombor</label>
+    </div>
+    <hr>
+    <h4>Pretraga objekata</h4>
+    <label for="tipObjekta">Izaberi tip:</label>
+    <select id="tipObjekta" onchange="promeniTipObjekta(this.value)">
+        <option value="Pošta">Pošta</option>
+        <option value="Banka">Banka</option>
+        <option value="Apoteka">Apoteka</option>
+        <option value="Policija">Policija</option>
+        <option value="Škola">Škola</option>
+    </select>
+</div>
+
+<script>
+    // 1. Definicije izvora podataka (koristimo tačna imena iz tvoje slike)
+    const osmSource = new ol.source.XYZ({ url: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png' });
+    
+    const satelitSource = new ol.source.TileWMS({
+        url: 'http://localhost:8080/geoserver/wms',
+        params: { 'LAYERS': 'prgisa_novo:LC08_L2SP_187028_20250902_20250911_02_T1_SR_B4', 'TILED': true }
+    });
+
+    const opstinaSource = new ol.source.TileWMS({
+        url: 'http://localhost:8080/geoserver/wms',
+        params: { 'LAYERS': 'gis_projekat:Opstina_Sombor', 'TILED': true }
+    });
+
+    const pretragaSource = new ol.source.TileWMS({
+        url: 'http://localhost:8080/geoserver/wms',
+        params: { 
+            'LAYERS': 'prgisa_novo:pretraga_lokacije', 
+            'TILED': true,
+            'VIEWPARAMS': 'tip_param:Pošta' 
+        }
+    });
+
+    // 2. Definicije slojeva
+    const osmLayer = new ol.layer.Tile({ source: osmSource });
+    const satelitLayer = new ol.layer.Tile({ source: satelitSource, visible: false });
+    const opstinaLayer = new ol.layer.Tile({ source: opstinaSource, opacity: 0.7 });
+    const pretragaLayer = new ol.layer.Tile({ source: pretragaSource });
+
+    // 3. Kreiranje Mape
+    const mapa = new ol.Map({
+        target: 'mapa',
+        layers: [osmLayer, satelitLayer, opstinaLayer, pretragaLayer],
+        view: new ol.View({
+            center: ol.proj.fromLonLat([19.23, 45.8]),
+            zoom: 11
+        })
+    });
+
+    // 4. Funkcije
+    function toggleLayer(layer, isVisible) {
+        layer.setVisible(isVisible);
+    }
+
+    function promeniTipObjekta(noviTip) {
+        pretragaSource.updateParams({
+            'LAYERS': 'prgisa_novo:pretraga_lokacije',
+            'VIEWPARAMS': 'tip_param:' + noviTip
+        });
+    }
+</script>
+</body>
+</html>
